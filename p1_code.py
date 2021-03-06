@@ -24,6 +24,7 @@ class KMeans:
     def __init__(self, k):
         self.k = k
         self.centers = None
+        self.init_centers = None
 
     @staticmethod
     def sse(center, data):
@@ -57,6 +58,7 @@ class KMeans:
 
         # init centers, initial calculations
         centers = self.center_init(X)
+        self.init_centers = centers
         thresh = 1e-2
 
         clust_labels = self.get_cluster_labels(centers, X)
