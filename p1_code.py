@@ -97,8 +97,15 @@ class KMeanspp(KMeans):
         super().__init__(k)
 
     def center_init(self, X):
-        #new init
-        pass
+        m, d = X.shape
+        for i in range(self.k):
+            if i == 0:
+                centers = X[np.random.choice(m, size=1, replace=False)].reshape(1, 1, d)
+            else:
+                new_center = X[np.argmax(self.sse(centers, X).min(axis=1))].reshape(1, 1, d)
+                centers = np.append(centers, new_center, axis=0)
+        self.centers = centers
+        return centers
 
 
 class KMeans1D:
@@ -117,7 +124,10 @@ def main(file, path, k, init):
         # print(kmeans.centers)
         labels = kmeans.transform(X)
     elif init == "kmeans++":
-        pass
+        kmeanspp = KMeanspp(k=k)
+        kmeanspp.fit(X)
+        print(kmeanspp.centers.shape)
+        # kmeanspp.center_init(X)
 
 
 if __name__ == "__main__":

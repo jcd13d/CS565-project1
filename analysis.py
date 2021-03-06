@@ -1,6 +1,7 @@
-from p1_code import KMeans
+from p1_code import KMeans, KMeanspp
 import numpy as np
 from sklearn.decomposition import PCA
+from sklearn import datasets
 import matplotlib.pyplot as plt
 import os
 
@@ -24,14 +25,17 @@ if __name__ == "__main__":
     X = np.genfromtxt(path, delimiter=',')
     y_true = np.genfromtxt(true_labels_path, delimiter=',')
 
-    calc_labels = KMeans(k=5).fit(X).transform(X)
+    X, y_true = datasets.make_blobs(10000, random_state=0)
+
+    # calc_labels = KMeans(k=3).fit(X).transform(X)
+    calc_labels = KMeanspp(k=3).fit(X).transform(X)
     print(calc_labels.shape)
     print(calc_labels[0:50])
     print(np.unique(calc_labels))
 
-    pca = PCA(n_components=20)
-    X = pca.fit_transform(X)
-    X = X[:, 0:2]
+    # pca = PCA(n_components=20)
+    # X = pca.fit_transform(X)
+    # X = X[:, 0:2]
 
     plots(X, y_true, "Actual_Classes_Major_Axes", out_path)
     plots(X, calc_labels, "Calc_Classes_Major_Axes", out_path)
