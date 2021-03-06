@@ -24,81 +24,80 @@ class KMeans:
     def __init__(self, k):
         self.k = k
         self.centers = None
-        pass
+
+    @staticmethod
+    def sse(center, data):
+        return ((data - center) ** 2).sum(axis=-1).T
+
+    @staticmethod
+    def in_cluster_sse(centers, labels, data):
+        error = 0
+        for i, center in enumerate(centers):
+            error += KMeans.sse(center, data[np.where(labels == i)]).sum()
+        return error
+
+    @staticmethod
+    def get_cluster_labels(centers, X):
+        return np.argmin(KMeans.sse(centers, X), axis=1)
 
     def center_init(self, X):
         m, d = X.shape
-        # TODO should we pick centers randomly? or pick randomly k points from the set as centers?
-        # this would get aroudn the initialization issue where some centers are never interacted with
-        # centers = np.random.rand(self.k, 1, d)
-        centers = X[np.random.choice(m, size=self.k, replace=False)].reshape(self.k, 1, d)   # get around issue but need to check
+        centers = np.random.rand(self.k, 1, d)
+        # centers = X[np.random.choice(m, size=self.k, replace=False)].reshape(self.k, 1, d)   # get around issue but need to check
         return centers
 
     def fit(self, X):
         m, d = X.shape
 
-        def sse(center, data):
-            return ((data - center)**2).sum(axis=-1).T
-
-        def in_cluster_sse(centers, labels, data):
-            error = 0
-            for i, center in enumerate(centers):
-                error += sse(center, data[np.where(labels == i)]).sum()
-            return error
-
-
-        # set assign each point to the cluster that minimizes its distance
-            # vectorized - calc dist from each point to center resulting in matrix of dist for ea center
-            # columnar argmin of that matrix is assigned cluster
-        # using l2 squared = (x - mu)^2
-
-
         # TEST
         # X = np.arange(30).reshape(-1, 3) + 5
         # centers = np.arange(15).reshape(5, 1, 3)
+        # m, d = X.shape
         # centers = np.random.rand(5, 1, 3)
-        centers = self.center_init(X)
 
+        # init centers, initial calculations
+        centers = self.center_init(X)
         thresh = 1e-2
 
-        clust_labels = np.argmin(sse(centers, X), axis=1)
-        old_error = in_cluster_sse(centers, clust_labels, X)
-        centers = np.array([X[np.where(clust_labels == i)].mean(axis=0) for i in range(centers.shape[0])]) \
-            .reshape(self.k, 1, d)
-        clust_labels = np.argmin(sse(centers, X), axis=1)
-        error = in_cluster_sse(centers, clust_labels, X)
+        clust_labels = self.get_cluster_labels(centers, X)
+        error = self.in_cluster_sse(centers, clust_labels, X)
 
-        while old_error - error > thresh:
-            print(old_error - error)
-            old_error = error
+        # find new centers until convergence
+        converged = False
+        while not converged:
+            old_centers = centers
 
             centers = np.array([X[np.where(clust_labels==i)].mean(axis=0) for i in range(centers.shape[0])])\
                 .reshape(self.k, 1, d)
 
-            # for clust_num, row in enumerate(new_centers):
-            #     if np.any(np.isnan(row)):
-            #         for now just reseting to old center
-                    # new_centers[clust_num] = centers[clust_num]
+            # reset to old center if no points assigned
+            for clust_num, row in enumerate(centers):
+                if np.any(np.isnan(row)):
+                    # for now just reseting to old center - seems like this is what andrew did
+                    centers[clust_num] = old_centers[clust_num]
 
-            clust_labels = np.argmin(sse(centers, X), axis=1)
+            clust_labels = self.get_cluster_labels(centers, X)
             # TODO: for this andrew did the error between new and old centroids - is it the same thing?
-            error = in_cluster_sse(centers, clust_labels, X)
+            new_error = self.in_cluster_sse(centers, clust_labels, X)
+            converged = error - new_error < thresh
+            # print(error - new_error)
+            error = new_error
 
         self.centers = centers.reshape(self.k, d)
-
-        #SEEMS TO BE WORKING! annoyed that i write that twice
-        # TODO got a better way to do this write once in jupyter
-
+        return self
 
 
     def transform(self, X):
-        # label based on learned cluster centers - basically first part of fit
-        pass
+        return self.get_cluster_labels(self.centers.reshape(self.k, 1, X.shape[1]), X)
 
 
 class KMeanspp(KMeans):
     # can just override init for this I think
-    def __init__(self):
+    def __init__(self, k):
+        super().__init__(k)
+
+    def center_init(self, X):
+        #new init
         pass
 
 
@@ -111,9 +110,14 @@ def main(file, path, k, init):
     X = np.genfromtxt(path, delimiter=',')
     # TODO: what about y? is that just for our own viz/debugging?
 
-    kmeans = KMeans(k=k)
-    kmeans.fit(X)
-    print(kmeans.centers.shape)
+    if init == "kmeans":
+        kmeans = KMeans(k=k)
+        kmeans.fit(X)
+        print(kmeans.centers.shape)
+        # print(kmeans.centers)
+        labels = kmeans.transform(X)
+    elif init == "kmeans++":
+        pass
 
 
 if __name__ == "__main__":
