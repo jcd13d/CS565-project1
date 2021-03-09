@@ -15,8 +15,26 @@ Andrew Notes
     
     
 Questions
-    * I though we are minimizing within cluster SSE - is SSE between centroids the same? as done in lab
+    * can error ever go up when adding clusters? local optima? Show SKlearn example 
+        * yes it can, if dataset doesnt follow kmeans assumptions (like spherical clusters)
+    * KMeans++ probability waiting is SSE, no?
+        * yes, cahnge in centers is equivalent though
+    * I thought we are minimizing within cluster SSE - is SSE between centroids the same? as done in lab
+        * the objective function for KM is SSE within cluster right? So this should be what 
+            we compare to the threshold? Is change in centers equivalent? (what i saw in lab)
+        * yes 
     * Cant some init cluster centers randomly just never be assignd any points? 
+        * for random initialization - they just never are assigned points so they are reassigned
+            to original cluster
+        * yes, possible
+            * assumes clusters are spherical
+            * thats why we can see stuff like that 
+            * our assumed structure is bad
+    * is midterm review acutally due? is it a homework?
+        * will get some bonus points if we do it 
+        * 20% for no answer was an oversight
+        
+    * AM I DOING PROBABILITY WEIGHTING RIGHT?
     
 Notes
     * something like - cluster in one of the high dimensions where the furthest cluster to init is 
@@ -68,9 +86,9 @@ class KMeans:
 
         clust_labels = self.get_cluster_labels(centers, X)
         error = self.in_cluster_sse(centers, clust_labels, X)
+        converged = False
 
         # find new centers until convergence
-        converged = False
         while not converged:
             old_centers = centers
 
