@@ -37,10 +37,14 @@ Questions
         
     * AM I DOING PROBABILITY WEIGHTING RIGHT?
     * does 1d need to use the "trick"?
+    * add max iter
     
 Notes
-    * something like - cluster in one of the high dimensions where the furthest cluster to init is 
-        in the same "cluster" might be happening? 
+    * next: 
+        * need to see if I need to use the trick to speed up 1d
+        * figure out the disagreement distance and implement
+        * produce desired plots 
+        * write report 
 """
 
 
