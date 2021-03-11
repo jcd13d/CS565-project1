@@ -1,4 +1,5 @@
 import numpy as np
+from sklearn.decomposition import PCA
 # np.random.seed(0)
 import sys
 
@@ -92,7 +93,7 @@ class KMeans:
         while not converged:
             old_centers = centers
 
-            centers = np.array([X[np.where(clust_labels==i)].mean(axis=0) for i in range(centers.shape[0])])\
+            centers = np.array([X[np.where(clust_labels == i)].mean(axis=0) for i in range(centers.shape[0])]) \
                 .reshape(self.k, 1, d)
 
             # reset to old center if no points assigned
@@ -112,7 +113,6 @@ class KMeans:
         self.centers = centers.reshape(self.k, d)
         return self
 
-
     def transform(self, X):
         return self.get_cluster_labels(self.centers.reshape(self.k, 1, X.shape[1]), X)
 
@@ -130,8 +130,8 @@ class KMeanspp(KMeans):
                 centers = X[np.random.choice(m, size=1, replace=False)].reshape(1, 1, d)
             else:
                 # new_center = X[np.argmax(self.sse(centers, X).min(axis=1))].reshape(1, 1, d) # max spread
-                probabilities = self.sse(centers, X).min(axis=1)        # smallest sq dist to any clust
-                probabilities = probabilities / probabilities.sum()     # normalize - sum to 1
+                probabilities = self.sse(centers, X).min(axis=1)  # smallest sq dist to any clust
+                probabilities = probabilities / probabilities.sum()  # normalize - sum to 1
                 new_center = X[np.random.choice(m, size=1, replace=False, p=probabilities)].reshape(1, 1, d)
                 centers = np.append(centers, new_center, axis=0)
         self.centers = centers
@@ -139,7 +139,62 @@ class KMeanspp(KMeans):
 
 
 class KMeans1D:
-    def __init__(self):
+    def __init__(self, k):
+        self.k = k
+        self.centers = None
+
+    @staticmethod
+    def dimension_reduction(X):
+        pca = PCA(n_components=1)
+        return pca.fit_transform(X)
+
+    @staticmethod
+    def sse_rep(points):
+        mu = np.mean(points)
+        return np.sum((points - mu) ** 2)
+
+    def fit(self, X):
+        X = self.dimension_reduction(X)
+        # test data
+        X = sorted(X)
+        X = np.array([0, 1, 2, 3, 4, 5, 6, 7]).reshape(-1, 1)
+        X = np.array([0, 1, 2, 8, 9, 10, 15, 16, 17, 22, 23, 24]).reshape(-1, 1)
+        m, d = X.shape
+        print(X.shape)
+
+        cost_table = np.zeros((m, self.k))
+        selection_table = np.zeros_like(cost_table)
+        for col in range(selection_table.shape[1]):
+            print(col)
+            selection_table[:, col] = col
+        print(selection_table)
+        for i in range(0, m):
+            sse = self.sse_rep(X[:i + 1])
+            cost_table[i, 0] = sse
+            selection_table[i, 0] = 0
+
+        for l in range(1, self.k):
+            for i in range(l + 1, m):
+                # current_min = np.inf
+                # for j in range(l - 1, i - 1):
+                #     # print("i: {0}, l: {1}, j: {2}, lookup: {3}, range:{4}, fill: {5}".format(i, l, j, (j, l-1), (j+1, i+1), (i, l)))
+                #     # print(X[j+1:i])
+                #     new_min = cost_table[j, l - 1] + self.sse_rep(X[j + 1:i + 1])
+                #     current_min = min(current_min, new_min)
+                # cost_table[i, l] = current_min
+                candidate_costs = np.array(
+                    [cost_table[j, l - 1] + self.sse_rep(X[j + 1:i + 1]) for j in range(l - 1, i - 1)])
+                print(candidate_costs)
+                selection_table[i, l] = np.argmin(candidate_costs) + l
+                cost_table[i, l] = np.min(candidate_costs)
+
+        print(cost_table)
+        print(selection_table)
+
+        # fill out table - m by k - initialize and fill initial cells
+        # zeros and first col is simple sse
+
+    def transform(self):
         pass
 
 
@@ -159,7 +214,8 @@ def main(file, path, k, init):
         print(kmeanspp.centers.shape)
         # kmeanspp.center_init(X)
     elif init == '1d':
-        pass
+        kmeans = KMeans1D(k=k)
+        kmeans.fit(X)
     else:
         raise ValueError("Invalid Argument for \"init\" ")
 
@@ -167,8 +223,3 @@ def main(file, path, k, init):
 if __name__ == "__main__":
     file, path, k, init = sys.argv
     main(file, path, int(k), init)
-
-
-
-
-
