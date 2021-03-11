@@ -36,6 +36,7 @@ Questions
         * 20% for no answer was an oversight
         
     * AM I DOING PROBABILITY WEIGHTING RIGHT?
+    * does 1d need to use the "trick"?
     
 Notes
     * something like - cluster in one of the high dimensions where the furthest cluster to init is 
@@ -138,10 +139,12 @@ class KMeanspp(KMeans):
         return centers
 
 
-class KMeans1D:
+class KMeans1D(KMeans):
+    # TODO: do i need to do "trick"
     def __init__(self, k):
-        self.k = k
-        self.centers = None
+        super(KMeans1D, self).__init__(k)
+        # self.k = k
+        # self.centers = None
 
     @staticmethod
     def dimension_reduction(X):
@@ -156,18 +159,17 @@ class KMeans1D:
     def fit(self, X):
         X = self.dimension_reduction(X)
         # test data
-        X = sorted(X)
-        X = np.array([0, 1, 2, 3, 4, 5, 6, 7]).reshape(-1, 1)
-        X = np.array([0, 1, 2, 8, 9, 10, 15, 16, 17, 22, 23, 24]).reshape(-1, 1)
+        X = np.sort(X)
+        # X = np.array([0, 1, 2, 3, 4, 5, 6, 7]).reshape(-1, 1)
+        # X = np.array([0, 1, 2, 8, 9, 10, 15, 16, 17, 22, 23, 24]).reshape(-1, 1)
         m, d = X.shape
-        print(X.shape)
 
         cost_table = np.zeros((m, self.k))
         selection_table = np.zeros_like(cost_table)
+
         for col in range(selection_table.shape[1]):
-            print(col)
             selection_table[:, col] = col
-        print(selection_table)
+
         for i in range(0, m):
             sse = self.sse_rep(X[:i + 1])
             cost_table[i, 0] = sse
@@ -175,27 +177,32 @@ class KMeans1D:
 
         for l in range(1, self.k):
             for i in range(l + 1, m):
-                # current_min = np.inf
-                # for j in range(l - 1, i - 1):
-                #     # print("i: {0}, l: {1}, j: {2}, lookup: {3}, range:{4}, fill: {5}".format(i, l, j, (j, l-1), (j+1, i+1), (i, l)))
-                #     # print(X[j+1:i])
-                #     new_min = cost_table[j, l - 1] + self.sse_rep(X[j + 1:i + 1])
-                #     current_min = min(current_min, new_min)
-                # cost_table[i, l] = current_min
                 candidate_costs = np.array(
                     [cost_table[j, l - 1] + self.sse_rep(X[j + 1:i + 1]) for j in range(l - 1, i - 1)])
-                print(candidate_costs)
                 selection_table[i, l] = np.argmin(candidate_costs) + l
                 cost_table[i, l] = np.min(candidate_costs)
 
-        print(cost_table)
-        print(selection_table)
+        j = m - 1
+        selections = []
+        for k in range(self.k - 1, -1 ,-1):
+            j = int(selection_table[j, k])
+            selections.append(j)
 
-        # fill out table - m by k - initialize and fill initial cells
-        # zeros and first col is simple sse
+        centers = list()
+        selections = sorted(selections)
+        for left, right in zip(selections[:-1], selections[1:]):
+            centers.append(np.mean(X[left:right]))
+        centers.append(np.mean(X[right:m]))
 
-    def transform(self):
-        pass
+        self.centers = np.array(centers)
+
+    def transform(self, X):
+        X = self.dimension_reduction(X)
+        return self.get_cluster_labels(self.centers.reshape(self.k, 1, X.shape[1]), X)
+
+def write_output_justin(X, labels, title):
+    data = np.append(X, labels.reshape(-1, 1), axis=1)
+    np.savetxt(title, data, delimiter=",")
 
 
 def main(file, path, k, init):
@@ -205,17 +212,18 @@ def main(file, path, k, init):
     if init == "random":
         kmeans = KMeans(k=k)
         kmeans.fit(X)
-        print(kmeans.centers.shape)
-        # print(kmeans.centers)
         labels = kmeans.transform(X)
+        write_output_justin(X, labels, "random.txt")
     elif init == "k-means++":
         kmeanspp = KMeanspp(k=k)
         kmeanspp.fit(X)
-        print(kmeanspp.centers.shape)
-        # kmeanspp.center_init(X)
+        labels = kmeanspp.transform(X)
+        write_output_justin(X, labels, "kpp.txt")
     elif init == '1d':
         kmeans = KMeans1D(k=k)
         kmeans.fit(X)
+        labels = kmeans.transform(X)
+        write_output_justin(X, labels, "1d.txt")
     else:
         raise ValueError("Invalid Argument for \"init\" ")
 
