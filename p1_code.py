@@ -110,8 +110,7 @@ class KMeans:
             clust_labels = self.get_cluster_labels(centers, X)
             # TODO: for this andrew did the error between new and old centroids - is it the same thing?
             new_error = self.in_cluster_sse(centers, clust_labels, X)
-            converged = error - new_error < thresh
-            # print(error - new_error)
+            converged = error - new_error < thresh # print(error - new_error)
             error = new_error
 
         self.inertia_ = error
@@ -134,7 +133,7 @@ class KMeanspp(KMeans):
             if i == 0:
                 centers = X[np.random.choice(m, size=1, replace=False)].reshape(1, 1, d)
             else:
-                # new_center = X[np.argmax(self.sse(centers, X).min(axis=1))].reshape(1, 1, d) # max spread
+                # centers = X[np.argmax(self.sse(centers, X).min(axis=1))].reshape(1, 1, d) # max spread
                 probabilities = self.sse(centers, X).min(axis=1)  # smallest sq dist to any clust
                 probabilities = probabilities / probabilities.sum()  # normalize - sum to 1
                 new_center = X[np.random.choice(m, size=1, replace=False, p=probabilities)].reshape(1, 1, d)
@@ -198,6 +197,7 @@ class KMeans1D(KMeans):
             centers.append(np.mean(X[left:right]))
         centers.append(np.mean(X[right:m]))
 
+        # self.inertia_ = self.in_cluster_sse(self.centers, labels=self.get_cluster_labels(self.centers, X=X))
         self.centers = np.array(centers)
 
     def transform(self, X):
@@ -233,5 +233,7 @@ def main(file, path, k, init):
 
 
 if __name__ == "__main__":
+    if len(sys.argv) < 4:
+        raise ValueError("Illegal argument length! Expecting input_file, k, and kmeans type")
     file, path, k, init = sys.argv
     main(file, path, int(k), init)
